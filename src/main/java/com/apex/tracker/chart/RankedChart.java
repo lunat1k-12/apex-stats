@@ -23,7 +23,6 @@ import org.springframework.util.CollectionUtils;
 
 import java.awt.*;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -44,7 +43,7 @@ public class RankedChart {
     private final PlayerRepository playerRepository;
     private final PlayersNotificator playersNotificator;
 
-    @Scheduled(fixedDelay = 600_000)
+    @Scheduled(cron = "0 15 * * 1")
     public void drawChart() throws IOException {
 
         ChartData playersData = loadDataSet();
@@ -71,9 +70,8 @@ public class RankedChart {
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         ChartUtils.writeChartAsPNG(stream, chart, 840, 420);
         stream.flush();
-//        playersNotificator.rankStatImage(stream);
-        ChartUtils.saveChartAsPNG(new File("check.png"), chart, 840, 420);
-        log.info("Draw");
+        playersNotificator.rankStatImage(stream);
+//        ChartUtils.saveChartAsPNG(new File("check.png"), chart, 840, 420);
     }
 
     private void configurePlot(JFreeChart chart, LineAndShapeRenderer renderer) {
