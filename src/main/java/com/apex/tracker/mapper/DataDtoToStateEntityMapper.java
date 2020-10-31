@@ -8,7 +8,10 @@ import java.time.LocalDateTime;
 
 public class DataDtoToStateEntityMapper {
 
+    private DataDtoToStateEntityMapper() {}
+
     public static final String RANK_SCORE = "RankScore";
+
     public static StatEntity toEntity(DataDto dataDto, LocalDateTime updateTime) {
         return StatEntity.builder()
                 .avatarUrl(dataDto.getData().getMetadata().getAvatarUrl())
