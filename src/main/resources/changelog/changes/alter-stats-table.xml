@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <databaseChangeLog
         xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
          http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
 
-    <include file="./changelog/changes/create-players-table.xml"/>
-    <include file="./changelog/changes/create-chats-table.xml"/>
-    <include file="./changelog/changes/create-stats-table.xml"/>
-    <include file="./changelog/changes/alter-stats-table.xml"/>
+    <changeSet id="revision-1" author="evgen.chemeris">
+        <addColumn tableName="stats">
+            <column name="rank_score" type="INTEGER"/>
+        </addColumn>
+    </changeSet>
 </databaseChangeLog>

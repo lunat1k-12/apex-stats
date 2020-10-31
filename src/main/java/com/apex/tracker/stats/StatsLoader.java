@@ -3,11 +3,13 @@ package com.apex.tracker.stats;
 import com.apex.tracker.entity.StatEntity;
 import com.apex.tracker.mapper.DataDtoToStateEntityMapper;
 import com.apex.tracker.notification.PlayersNotificator;
+import com.apex.tracker.props.StatsProps;
 import com.apex.tracker.repository.PlayerRepository;
 import com.apex.tracker.repository.StatRepository;
 import com.apex.tracker.stats.dto.DataDto;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -22,14 +24,12 @@ import java.util.Objects;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class StatsLoader {
 
-    public static final String API_KEY = "9cfdbd65-8873-4683-8a58-5bda33b2e27d";
-    private final HttpClient client;
-
-    public StatsLoader() {
-        client = HttpClient.newHttpClient();
-    }
+    @Autowired
+    private final StatsProps stateProps;
+    private final HttpClient client = HttpClient.newHttpClient();
 
     @Autowired
     private PlayerRepository playerRepository;
@@ -52,8 +52,8 @@ public class StatsLoader {
         try {
             log.info("load stats for: {}", name);
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(String.format("https://public-api.tracker.gg/apex/v1/standard/profile/2/%s", name)))
-                    .header("TRN-Api-Key", API_KEY)
+                    .uri(URI.create(String.format(stateProps.getUrl(), name)))
+                    .header("TRN-Api-Key", stateProps.getApiKey())
                     .build();
 
             String response = client.send(request, HttpResponse.BodyHandlers.ofString()).body();
@@ -74,9 +74,11 @@ public class StatsLoader {
     private void checkIsChanged(StatEntity stat, DataDto data) {
         if (!stat.getLevel().equals(data.getData().getMetadata().getLevel())) {
             playersNotificator.levelUpMessage(DataDtoToStateEntityMapper.toEntity(data));
+            log.info("Level changed: {}", data.getData().getMetadata().getPlatformUserHandle());
             saveStat(data);
         } else if (!stat.getRankName().equals(data.getData().getMetadata().getRankName())) {
             playersNotificator.rankUpMessage(DataDtoToStateEntityMapper.toEntity(data));
+            log.info("Ranked changed: {}", data.getData().getMetadata().getPlatformUserHandle());
             saveStat(data);
         }
     }
