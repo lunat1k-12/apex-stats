@@ -9,10 +9,10 @@ import java.time.LocalDateTime;
 public class DataDtoToStateEntityMapper {
 
     public static final String RANK_SCORE = "RankScore";
-    public static StatEntity toEntity(DataDto dataDto) {
+    public static StatEntity toEntity(DataDto dataDto, LocalDateTime updateTime) {
         return StatEntity.builder()
                 .avatarUrl(dataDto.getData().getMetadata().getAvatarUrl())
-                .created(LocalDateTime.now())
+                .created(updateTime)
                 .level(dataDto.getData().getMetadata().getLevel())
                 .platformUserHandle(dataDto.getData().getMetadata().getPlatformUserHandle())
                 .rankImage(dataDto.getData().getMetadata().getRankImage())
