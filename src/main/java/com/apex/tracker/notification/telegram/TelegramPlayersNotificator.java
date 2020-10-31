@@ -14,7 +14,10 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -102,6 +105,24 @@ public class TelegramPlayersNotificator extends TelegramLongPollingBot implement
     @Override
     public void rankUpMessage(StatEntity stat) {
         chatRepository.findAll().forEach(chat -> rankUpMessage(stat, chat));
+    }
+
+    @Override
+    public void rankStatImage(ByteArrayOutputStream stream) {
+        chatRepository.findAll().forEach(chat -> rankStatImage(new ByteArrayInputStream(stream.toByteArray()), chat));
+    }
+
+    public void rankStatImage(InputStream is, ChatEntity chat) {
+        try {
+            SendPhoto photo = new SendPhoto();
+            photo.setChatId(chat.getTelegramId());
+            photo.setCaption("Прогресс ранкеда за неделю.");
+
+            photo.setPhoto("chart", is);
+            execute(photo);
+        } catch (TelegramApiException e) {
+            log.info("Error while sending chart", e);
+        }
     }
 
     private void rankUpMessage(StatEntity stat, ChatEntity chat) {
