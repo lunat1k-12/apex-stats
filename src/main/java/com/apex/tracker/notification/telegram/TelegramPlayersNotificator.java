@@ -3,9 +3,8 @@ package com.apex.tracker.notification.telegram;
 import com.apex.tracker.entity.ChatEntity;
 import com.apex.tracker.entity.StatEntity;
 import com.apex.tracker.notification.PlayersNotificator;
+import com.apex.tracker.props.TelegramProps;
 import com.apex.tracker.repository.ChatRepository;
-import com.apex.tracker.repository.PlayerRepository;
-import com.apex.tracker.repository.StatRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -28,11 +27,8 @@ import java.util.Optional;
 @Slf4j
 public class TelegramPlayersNotificator extends TelegramLongPollingBot implements PlayersNotificator {
 
-    public static final String BOT_USERNAME = "Apex_stats_bot";
-
-    public static final String BOT_TOKEN = "1369218836:AAED5-ONso8BAkp0PFdjChLscRinWS4IQ0c";
-
     private final ChatRepository chatRepository;
+    private final TelegramProps telegramProps;
 
     private final HttpClient client = HttpClient.newHttpClient();
 
@@ -45,14 +41,14 @@ public class TelegramPlayersNotificator extends TelegramLongPollingBot implement
                 .map(Message::getNewChatMembers)
                 .stream()
                 .flatMap(List::stream)
-                .filter(m -> BOT_USERNAME.equals(m.getUserName()))
+                .filter(m -> telegramProps.getBotUsername().equals(m.getUserName()))
                 .findAny()
                 .ifPresent(m -> saveChat(update));
 
         Optional.ofNullable(update)
                 .map(Update::getMessage)
                 .map(Message::getLeftChatMember)
-                .filter(m -> BOT_USERNAME.equals(m.getUserName()))
+                .filter(m -> telegramProps.getBotUsername().equals(m.getUserName()))
                 .ifPresent(m -> deleteChat(update));
     }
 
@@ -70,12 +66,12 @@ public class TelegramPlayersNotificator extends TelegramLongPollingBot implement
 
     @Override
     public String getBotUsername() {
-        return BOT_USERNAME;
+        return telegramProps.getBotUsername();
     }
 
     @Override
     public String getBotToken() {
-        return BOT_TOKEN;
+        return telegramProps.getBotToken();
     }
 
     @Override

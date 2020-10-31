@@ -3,11 +3,13 @@ package com.apex.tracker.stats;
 import com.apex.tracker.entity.StatEntity;
 import com.apex.tracker.mapper.DataDtoToStateEntityMapper;
 import com.apex.tracker.notification.PlayersNotificator;
+import com.apex.tracker.props.StatsProps;
 import com.apex.tracker.repository.PlayerRepository;
 import com.apex.tracker.repository.StatRepository;
 import com.apex.tracker.stats.dto.DataDto;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -18,18 +20,17 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.LocalDateTime;
 import java.util.Objects;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class StatsLoader {
 
-    public static final String API_KEY = "9cfdbd65-8873-4683-8a58-5bda33b2e27d";
-    private final HttpClient client;
-
-    public StatsLoader() {
-        client = HttpClient.newHttpClient();
-    }
+    @Autowired
+    private final StatsProps stateProps;
+    private final HttpClient client = HttpClient.newHttpClient();
 
     @Autowired
     private PlayerRepository playerRepository;
@@ -41,10 +42,11 @@ public class StatsLoader {
     @Scheduled(fixedDelay = 120_000)
     public void loadStats() {
         log.info("Load stats...");
+        LocalDateTime updateTime = LocalDateTime.now();
         playerRepository.findAll().stream()
                 .map(p -> loadStats(p.getName()))
                 .filter(Objects::nonNull)
-                .forEach(this::processData);
+                .forEach(d -> processData(d, updateTime));
     }
 
     private DataDto loadStats(String name) {
@@ -52,8 +54,8 @@ public class StatsLoader {
         try {
             log.info("load stats for: {}", name);
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(String.format("https://public-api.tracker.gg/apex/v1/standard/profile/2/%s", name)))
-                    .header("TRN-Api-Key", API_KEY)
+                    .uri(URI.create(String.format(stateProps.getUrl(), name)))
+                    .header("TRN-Api-Key", stateProps.getApiKey())
                     .build();
 
             String response = client.send(request, HttpResponse.BodyHandlers.ofString()).body();
@@ -66,27 +68,29 @@ public class StatsLoader {
         return null;
     }
 
-    private void processData(DataDto data) {
+    private void processData(DataDto data, LocalDateTime updateTime) {
         statRepository.findLastByName(data.getData().getMetadata().getPlatformUserHandle())
-                .ifPresentOrElse(stat -> this.checkIsChanged(stat, data), () -> this.createNewRecord(data));
+                .ifPresentOrElse(stat -> this.checkIsChanged(stat, data, updateTime), () -> this.createNewRecord(data, updateTime));
     }
 
-    private void checkIsChanged(StatEntity stat, DataDto data) {
+    private void checkIsChanged(StatEntity stat, DataDto data, LocalDateTime updateTime) {
         if (!stat.getLevel().equals(data.getData().getMetadata().getLevel())) {
-            playersNotificator.levelUpMessage(DataDtoToStateEntityMapper.toEntity(data));
-            saveStat(data);
+            playersNotificator.levelUpMessage(DataDtoToStateEntityMapper.toEntity(data, updateTime));
+            log.info("Level changed: {}", data.getData().getMetadata().getPlatformUserHandle());
+            saveStat(data, updateTime);
         } else if (!stat.getRankName().equals(data.getData().getMetadata().getRankName())) {
-            playersNotificator.rankUpMessage(DataDtoToStateEntityMapper.toEntity(data));
-            saveStat(data);
+            playersNotificator.rankUpMessage(DataDtoToStateEntityMapper.toEntity(data, updateTime));
+            log.info("Ranked changed: {}", data.getData().getMetadata().getPlatformUserHandle());
+            saveStat(data, updateTime);
         }
     }
 
-    private void createNewRecord(DataDto data) {
-        playersNotificator.rankUpMessage(DataDtoToStateEntityMapper.toEntity(data));
-        saveStat(data);
+    private void createNewRecord(DataDto data, LocalDateTime updateTime) {
+        playersNotificator.rankUpMessage(DataDtoToStateEntityMapper.toEntity(data, updateTime));
+        saveStat(data, updateTime);
     }
 
-    private void saveStat(DataDto dataDto) {
-        statRepository.save(DataDtoToStateEntityMapper.toEntity(dataDto));
+    private void saveStat(DataDto dataDto, LocalDateTime updateTime) {
+        statRepository.save(DataDtoToStateEntityMapper.toEntity(dataDto, updateTime));
     }
 }

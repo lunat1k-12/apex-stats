@@ -35,4 +35,6 @@ public class StatEntity {
     private String avatarUrl;
     @Column(name = "created")
     private LocalDateTime created;
+    @Column(name = "rank_score")
+    private Long rankScore;
 }
