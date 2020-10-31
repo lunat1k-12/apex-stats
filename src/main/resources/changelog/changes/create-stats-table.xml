@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="revision-1" author="evgen.chemeris">
+        <createTable tableName="stats">
+            <column name="id" type="INTEGER" autoIncrement="true">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="platform_user_handle" type="VARCHAR(1000)"/>
+            <column name="level" type="INTEGER"/>
+            <column name="rank_name" type="VARCHAR(1000)"/>
+            <column name="rank_image" type="VARCHAR(1000)"/>
+            <column name="avatar_url" type="VARCHAR(1000)"/>
+            <column name="created" type="DATETIME"/>
+        </createTable>
+    </changeSet>
+</databaseChangeLog>
