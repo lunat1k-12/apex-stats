@@ -6,12 +6,13 @@ import com.apex.tracker.notification.PlayersNotificator;
 import com.apex.tracker.props.StatsProps;
 import com.apex.tracker.repository.PlayerRepository;
 import com.apex.tracker.repository.StatRepository;
+import com.apex.tracker.stats.diff.DiffTaskChain;
+import com.apex.tracker.stats.diff.DiffWorkspace;
 import com.apex.tracker.stats.dto.DataDto;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -28,16 +29,14 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class StatsLoader {
 
-    @Autowired
+
     private final StatsProps stateProps;
     private final HttpClient client = HttpClient.newHttpClient();
 
-    @Autowired
-    private PlayerRepository playerRepository;
-    @Autowired
-    private StatRepository statRepository;
-    @Autowired
-    private PlayersNotificator playersNotificator;
+    private final PlayerRepository playerRepository;
+    private final StatRepository statRepository;
+    private final PlayersNotificator playersNotificator;
+    private final DiffTaskChain diffTaskChain;
 
     @Scheduled(fixedDelay = 120_000)
     public void loadStats() {
@@ -74,15 +73,11 @@ public class StatsLoader {
     }
 
     private void checkIsChanged(StatEntity stat, DataDto data, LocalDateTime updateTime) {
-        if (!stat.getLevel().equals(data.getData().getMetadata().getLevel())) {
-            playersNotificator.levelUpMessage(DataDtoToStateEntityMapper.toEntity(data, updateTime));
-            log.info("Level changed: {}", data.getData().getMetadata().getPlatformUserHandle());
-            saveStat(data, updateTime);
-        } else if (!stat.getRankName().equals(data.getData().getMetadata().getRankName())) {
-            playersNotificator.rankUpMessage(DataDtoToStateEntityMapper.toEntity(data, updateTime));
-            log.info("Ranked changed: {}", data.getData().getMetadata().getPlatformUserHandle());
-            saveStat(data, updateTime);
-        }
+        diffTaskChain.process(DiffWorkspace.builder()
+                .stat(stat)
+                .data(data)
+                .updateTime(updateTime)
+                .build());
     }
 
     private void createNewRecord(DataDto data, LocalDateTime updateTime) {
