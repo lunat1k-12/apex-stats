@@ -37,4 +37,6 @@ public class StatEntity {
     private LocalDateTime created;
     @Column(name = "rank_score")
     private Long rankScore;
+    @Column(name = "kills")
+    private Long kills;
 }
