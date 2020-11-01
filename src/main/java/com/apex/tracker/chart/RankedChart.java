@@ -62,7 +62,7 @@ public class RankedChart {
         this.lightFont = Font.createFont(Font.TRUETYPE_FONT, lightFontIs).deriveFont(18f);
     }
 
-    @Scheduled(cron = "0 15 * * 1")
+    @Scheduled(cron = "0 15 * * 1 *")
     public void drawChart() throws IOException {
 
         ChartData playersData = loadDataSet();
