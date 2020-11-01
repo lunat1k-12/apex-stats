@@ -120,6 +120,7 @@ public class TelegramPlayersNotificator extends TelegramLongPollingBot implement
 
             photo.setPhoto("chart", is);
             execute(photo);
+            log.info("Chart sent to {}", chat.getName());
         } catch (TelegramApiException e) {
             log.info("Error while sending chart", e);
         }

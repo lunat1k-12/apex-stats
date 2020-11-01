@@ -17,13 +17,16 @@ import org.jfree.chart.renderer.category.LineAndShapeRenderer;
 import org.jfree.chart.title.TextTitle;
 import org.jfree.data.category.CategoryDataset;
 import org.jfree.data.general.DatasetUtils;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
+import javax.annotation.PostConstruct;
 import java.awt.*;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -43,6 +46,22 @@ public class RankedChart {
     private final PlayerRepository playerRepository;
     private final PlayersNotificator playersNotificator;
 
+    private Font mainFont;
+    private Font secondaryFont;
+    private Font lightFont;
+
+    @PostConstruct
+    public void init() throws IOException, FontFormatException {
+        InputStream mainIs = new ClassPathResource("/fonts/medium.ttf").getInputStream();
+        this.mainFont = Font.createFont(Font.TRUETYPE_FONT, mainIs).deriveFont(25f);
+
+        InputStream lightIs = new ClassPathResource("/fonts/medium.ttf").getInputStream();
+        this.secondaryFont = Font.createFont(Font.TRUETYPE_FONT, lightIs).deriveFont(20f);
+
+        InputStream lightFontIs = new ClassPathResource("/fonts/light.otf").getInputStream();
+        this.lightFont = Font.createFont(Font.TRUETYPE_FONT, lightFontIs).deriveFont(18f);
+    }
+
     @Scheduled(cron = "0 15 * * 1")
     public void drawChart() throws IOException {
 
@@ -52,26 +71,23 @@ public class RankedChart {
                 playersData.getPlayerLabels(), playersData.getDates(),
                 playersData.getData());
 
-        JFreeChart chart = ChartFactory.createLineChart("Ranked", "день", "очки ранкеда", dataset);
+        JFreeChart chart = ChartFactory.createLineChart("Ranked", "день", "очки", dataset);
         var renderer = this.gerRenderer();
         this.configurePlot(chart, renderer);
 
         chart.setBackgroundPaint(new Color(48, 48, 48));
         chart.setBorderPaint(Color.BLUE);
         chart.getLegend().setBackgroundPaint(new Color(48, 48, 48));
-        chart.getLegend().setItemFont(new Font("Serif", Font.PLAIN, 20));
+        chart.getLegend().setItemFont(secondaryFont);
 
-        chart.setTitle(new TextTitle("Прогресс ранкеда за неделю",
-                        new Font("Serif", Font.PLAIN, 25)
-                )
-        );
+        chart.setTitle(new TextTitle("Прогресс ранкеда за неделю", mainFont));
         chart.getTitle().setPaint(Color.WHITE);
 
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         ChartUtils.writeChartAsPNG(stream, chart, 840, 420);
         stream.flush();
+        log.info("Chart generated");
         playersNotificator.rankStatImage(stream);
-//        ChartUtils.saveChartAsPNG(new File("check.png"), chart, 840, 420);
     }
 
     private void configurePlot(JFreeChart chart, LineAndShapeRenderer renderer) {
@@ -86,11 +102,13 @@ public class RankedChart {
 
         plot.getDomainAxis().setLabelPaint(Color.white);
         plot.getDomainAxis().setTickLabelPaint(Color.white);
-        plot.getDomainAxis().setLabelFont(new Font("Serif", Font.PLAIN, 20));
+        plot.getDomainAxis().setLabelFont(secondaryFont);
+        plot.getDomainAxis().setTickLabelFont(lightFont);
 
         plot.getRangeAxis().setLabelPaint(Color.white);
         plot.getRangeAxis().setTickLabelPaint(Color.white);
-        plot.getRangeAxis().setLabelFont(new Font("Serif", Font.PLAIN, 20));
+        plot.getRangeAxis().setLabelFont(secondaryFont);
+        plot.getRangeAxis().setTickLabelFont(lightFont);
     }
 
     private LineAndShapeRenderer gerRenderer() {
@@ -114,14 +132,14 @@ public class RankedChart {
 
         double[][] res = new double[players.size()][];
 
-        for (int i=0; i<res.length; i++) {
+        for (int i = 0; i < res.length; i++) {
             res[i] = loadPlayerDataSet(players.get(i));
             playerLabels[i] = players.get(i).getName();
         }
 
         List<String> listLabels = getDaysLabels();
         String[] labels = new String[listLabels.size()];
-        for (int i=0; i<listLabels.size(); i++) {
+        for (int i = 0; i < listLabels.size(); i++) {
             labels[i] = listLabels.get(i);
         }
 
@@ -168,7 +186,7 @@ public class RankedChart {
     }
 
     private double getPreviousValue(LocalDate date, List<StatEntity> stats) {
-        LocalDate prevDate =  stats.stream()
+        LocalDate prevDate = stats.stream()
                 .filter(s -> s.getCreated().toLocalDate().isBefore(date))
                 .max(Comparator.comparing(StatEntity::getCreated))
                 .map(StatEntity::getCreated)
