@@ -9,6 +9,8 @@ import com.apex.tracker.repository.StatRepository;
 import com.apex.tracker.stats.diff.DiffTaskChain;
 import com.apex.tracker.stats.diff.DiffWorkspace;
 import com.apex.tracker.stats.dto.DataDto;
+import com.apex.tracker.stats.dto.MetadataDto;
+import com.apex.tracker.stats.dto.PlayerStatsDto;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.LocalDateTime;
 import java.util.Objects;
+import java.util.Optional;
 
 @Slf4j
 @Component
@@ -50,6 +53,7 @@ public class StatsLoader {
 
     private DataDto loadStats(String name) {
 
+        String response = null;
         try {
             log.info("load stats for: {}", name);
             HttpRequest request = HttpRequest.newBuilder()
@@ -57,18 +61,30 @@ public class StatsLoader {
                     .header("TRN-Api-Key", stateProps.getApiKey())
                     .build();
 
-            String response = client.send(request, HttpResponse.BodyHandlers.ofString()).body();
+            response = client.send(request, HttpResponse.BodyHandlers.ofString()).body();
             ObjectMapper mapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
             return mapper.readValue(response, DataDto.class);
         } catch (IOException | InterruptedException ex) {
-            log.info("Failed to load, {}", name, ex);
+            log.info("Failed to load, {}, response: {}", name, response, ex);
         }
 
         return null;
     }
 
     private void processData(DataDto data, LocalDateTime updateTime) {
-        statRepository.findLastByName(data.getData().getMetadata().getPlatformUserHandle())
+        log.info("Data to process: {}", data);
+        String userName = Optional.ofNullable(data)
+                .map(DataDto::getData)
+                .map(PlayerStatsDto::getMetadata)
+                .map(MetadataDto::getPlatformUserHandle)
+                .orElse(null);
+
+        if (userName == null) {
+            log.info("Empty user name.");
+            return;
+        }
+
+        statRepository.findLastByName(userName)
                 .ifPresentOrElse(stat -> this.checkIsChanged(stat, data, updateTime), () -> this.createNewRecord(data, updateTime));
     }
 
